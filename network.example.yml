@@ -1,0 +1,103 @@
+---
+# ╔══════════════════════════════════════════════════════════════════╗
+# ║            NETWORK TOPOLOGY - DEFINITION FILE                   ║
+# ╠══════════════════════════════════════════════════════════════════╣
+# ║  Copy this file as 'network.yml' and edit with your data:      ║
+# ║    cp network.example.yml network.yml                           ║
+# ║                                                                 ║
+# ║  3-Level Topology:                                              ║
+# ║    Level 1: Switch Port                                         ║
+# ║      └── Level 2: I/O Block                                    ║
+# ║            └── Level 3: Devices (printers, readers, etc.)       ║
+# ╚══════════════════════════════════════════════════════════════════╝
+
+# --- Switch settings ---
+# "classic" for IOS 12.x/15.x  |  "xe" for IOS-XE 16.x+
+ios_version: "classic"
+
+# Uplink ports (connection to router or core switch).
+# These are marked as "trusted" for DHCP snooping.
+uplinks:
+  - GigabitEthernet1/0/48
+
+# ── Channel definitions ──────────────────────────────────────────
+# Each channel represents a physical switch port with its chain
+# of devices connected through an I/O Block.
+#
+#   [Switch Port] ──── [I/O Block] ──┬── [Printer]
+#                                    ├── [Barcode Reader]
+#                                    └── [Other Device]
+
+channels:
+  # ── Channel 1: Robot Cell A ────────────────────────────────
+  - port: GigabitEthernet1/0/1
+    vlan: 10
+    description: "Robot Cell A"
+
+    # Level 2: I/O Block connected directly to the switch
+    io_block:
+      name: "IO_Block_CellA"
+      ip: "192.168.10.1"
+      mac: "0011.2233.4455"
+
+    # Level 3: Devices connected to the I/O Block
+    devices:
+      - name: "Label_Printer"
+        type: "printer"
+        ip: "192.168.10.10"
+        mac: "aa00.bb11.cc22"
+
+      - name: "Barcode_Reader_01"
+        type: "reader"
+        ip: "192.168.10.11"
+        mac: "dd44.ee55.ff66"
+
+  # ── Channel 2: Packing Station ────────────────────────────
+  - port: GigabitEthernet1/0/2
+    vlan: 20
+    description: "Packing Station"
+
+    io_block:
+      name: "IO_Block_Packing"
+      ip: "192.168.20.1"
+      mac: "1122.3344.5566"
+
+    devices:
+      - name: "Box_Printer"
+        type: "printer"
+        ip: "192.168.20.10"
+        mac: "7788.99aa.bbcc"
+
+  # ── Channel 3: Inspection Line ─────────────────────────────
+  - port: GigabitEthernet1/0/3
+    vlan: 30
+    description: "Inspection Line"
+
+    io_block:
+      name: "IO_Block_Inspection"
+      ip: "192.168.30.1"
+      mac: "aabb.ccdd.eeff"
+
+    devices:
+      - name: "Vision_Camera"
+        type: "camera"
+        ip: "192.168.30.10"
+        mac: "1100.2200.3300"
+
+      - name: "Barcode_Reader_02"
+        type: "reader"
+        ip: "192.168.30.11"
+        mac: "4400.5500.6600"
+
+      - name: "Reject_Printer"
+        type: "printer"
+        ip: "192.168.30.12"
+        mac: "7700.8800.9900"
+
+# ── How to find MAC addresses ────────────────────────────────────
+# 1. Device label: check the physical device sticker
+# 2. From the switch: show mac address-table
+# 3. From Windows:    arp -a
+# 4. From Linux:      ip neighbor
+# 5. Cisco format:    xxxx.xxxx.xxxx (no dashes or colons)
+#    Convert: AA:00:BB:11:CC:22 -> aa00.bb11.cc22

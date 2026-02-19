@@ -1,0 +1,1185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cisco Channel Guard</title>
+    <style>
+/* ═══════════════════════════════════════════════════════════════
+   Cisco Channel Guard - Premium Web UI
+   ═══════════════════════════════════════════════════════════════ */
+
+:root {
+    --primary: #2563eb;
+    --primary-dark: #1d4ed8;
+    --primary-light: #dbeafe;
+    --primary-glow: rgba(37,99,235,0.15);
+    --io-block: #0d7377;
+    --io-block-light: #e8f5f5;
+    --device: #ea580c;
+    --device-light: #fff7ed;
+    --success: #16a34a;
+    --success-light: #dcfce7;
+    --danger: #dc2626;
+    --danger-light: #fee2e2;
+    --warning: #d97706;
+    --warning-light: #fef3c7;
+
+    --bg: #f1f5f9;
+    --sidebar-bg: #0f172a;
+    --sidebar-hover: #1e293b;
+    --sidebar-text: #94a3b8;
+    --card-bg: #ffffff;
+    --text: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #94a3b8;
+    --border: #e2e8f0;
+    --border-light: #f1f5f9;
+    --input-bg: #f8fafc;
+
+    --radius: 10px;
+    --radius-lg: 14px;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+    --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.06), 0 2px 4px rgba(0,0,0,0.04);
+    --shadow-lg: 0 10px 30px rgba(0,0,0,0.08), 0 4px 8px rgba(0,0,0,0.04);
+    --transition: 0.2s cubic-bezier(0.4,0,0.2,1);
+}
+
+*,*::before,*::after { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+    font-family: 'Inter',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* ── SVG Icon Base ────────────────────────────────────────── */
+.icon { width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; flex-shrink:0; }
+.icon-sm { width:14px; height:14px; }
+.icon-lg { width:22px; height:22px; }
+.icon-xl { width:48px; height:48px; stroke-width:1.5; }
+
+/* ── Sidebar ──────────────────────────────────────────────── */
+.sidebar {
+    width: 240px;
+    background: var(--sidebar-bg);
+    color: var(--sidebar-text);
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top:0; left:0; bottom:0;
+    z-index: 100;
+    border-right: 1px solid rgba(255,255,255,0.06);
+}
+
+.sidebar-header {
+    padding: 28px 24px 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.sidebar-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.brand-icon {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, var(--primary), #3b82f6);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(37,99,235,0.3);
+}
+
+.brand-text h1 { font-size: 15px; font-weight: 700; color: #fff; letter-spacing: -0.3px; }
+.brand-text .subtitle { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #64748b; margin-top: 2px; }
+
+.nav-links { list-style: none; padding: 16px 12px; flex:1; display: flex; flex-direction: column; gap: 2px; }
+
+.nav-links a {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 14px;
+    color: var(--sidebar-text);
+    text-decoration: none;
+    font-size: 13.5px;
+    font-weight: 500;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all var(--transition);
+}
+.nav-links a:hover { background: var(--sidebar-hover); color: #e2e8f0; }
+.nav-links a.active {
+    background: linear-gradient(135deg, rgba(37,99,235,0.2), rgba(59,130,246,0.1));
+    color: #fff;
+    box-shadow: inset 0 0 0 1px rgba(59,130,246,0.2);
+}
+.nav-links a .icon { opacity: 0.6; }
+.nav-links a.active .icon { opacity: 1; color: #60a5fa; }
+
+.sidebar-footer {
+    padding: 16px 24px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    font-size: 10px;
+    color: #475569;
+    letter-spacing: 0.3px;
+}
+
+/* ── Content ──────────────────────────────────────────────── */
+.content { margin-left: 240px; flex:1; min-height: 100vh; display: flex; flex-direction: column; }
+
+/* ── Connection Bar ───────────────────────────────────────── */
+.connection-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 32px;
+    background: var(--card-bg);
+    border-bottom: 1px solid var(--border);
+    font-size: 12.5px;
+    min-height: 40px;
+}
+
+.conn-indicator { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; transition: all var(--transition); }
+.conn-indicator.connected { background: var(--success); box-shadow: 0 0 0 3px rgba(22,163,74,0.15); }
+.conn-indicator.disconnected { background: #cbd5e1; }
+
+@keyframes pulse-green {
+    0%,100% { box-shadow: 0 0 0 3px rgba(22,163,74,0.15); }
+    50% { box-shadow: 0 0 0 6px rgba(22,163,74,0.08); }
+}
+.conn-indicator.connected { animation: pulse-green 2s ease-in-out infinite; }
+
+.conn-text { flex:1; color: var(--text-secondary); }
+.conn-text strong { color: var(--primary); font-family: 'SF Mono','Fira Code','Cascadia Code',monospace; font-size: 12px; }
+
+.conn-btn {
+    padding: 4px 14px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--card-bg);
+    cursor: pointer;
+    font-size: 11.5px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    transition: all var(--transition);
+}
+.conn-btn:hover { background: var(--bg); border-color: #cbd5e1; }
+.conn-btn.danger { color: var(--danger); border-color: var(--danger-light); }
+.conn-btn.danger:hover { background: var(--danger-light); }
+
+/* ── Page Header ──────────────────────────────────────────── */
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 24px 32px 20px;
+    background: var(--card-bg);
+    border-bottom: 1px solid var(--border);
+}
+.page-header h2 { font-size: 20px; font-weight: 700; letter-spacing: -0.4px; color: var(--text); }
+.header-actions { display: flex; gap: 8px; align-items: center; }
+
+/* ── Buttons ──────────────────────────────────────────────── */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 8px 16px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 550;
+    cursor: pointer;
+    transition: all var(--transition);
+    text-decoration: none;
+    font-family: inherit;
+    white-space: nowrap;
+    line-height: 1.4;
+}
+.btn:disabled { opacity: 0.45; cursor: not-allowed; pointer-events: none; }
+.btn:active:not(:disabled) { transform: scale(0.97); }
+
+.btn-primary { background: var(--primary); color: #fff; box-shadow: 0 1px 3px rgba(37,99,235,0.25); }
+.btn-primary:hover:not(:disabled) { background: var(--primary-dark); box-shadow: 0 2px 6px rgba(37,99,235,0.3); }
+
+.btn-secondary { background: var(--card-bg); color: var(--text-secondary); border-color: var(--border); }
+.btn-secondary:hover:not(:disabled) { background: var(--bg); border-color: #cbd5e1; }
+
+.btn-success { background: var(--success); color: #fff; box-shadow: 0 1px 3px rgba(22,163,74,0.25); }
+.btn-success:hover:not(:disabled) { background: #15803d; }
+
+.btn-danger { background: var(--danger-light); color: var(--danger); border-color: #fecaca; }
+.btn-danger:hover:not(:disabled) { background: #fecaca; }
+
+.btn-ghost { background: transparent; color: var(--text-secondary); }
+.btn-ghost:hover:not(:disabled) { background: var(--bg); }
+
+.btn-sm { padding: 5px 10px; font-size: 12px; border-radius: 6px; }
+.btn-lg { padding: 12px 24px; font-size: 14.5px; }
+
+/* ── Stats Bar ────────────────────────────────────────────── */
+.stats-bar { display: flex; gap: 12px; padding: 24px 32px; flex-wrap: wrap; }
+
+.stat-card {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    padding: 18px 24px;
+    box-shadow: var(--shadow);
+    text-align: center;
+    min-width: 110px;
+    border: 1px solid var(--border-light);
+    transition: all var(--transition);
+}
+.stat-card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+.stat-value { font-size: 28px; font-weight: 800; color: var(--primary); letter-spacing: -1px; }
+.stat-label { font-size: 10.5px; color: var(--text-muted); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.8px; font-weight: 600; }
+
+/* ── Empty State ──────────────────────────────────────────── */
+.empty-state { text-align: center; padding: 80px 32px; }
+.empty-state .icon-xl { color: #cbd5e1; margin: 0 auto 20px; display: block; }
+.empty-state h3 { font-size: 18px; font-weight: 600; margin-bottom: 8px; color: var(--text); }
+.empty-state p { color: var(--text-muted); margin-bottom: 24px; font-size: 14px; line-height: 1.5; }
+
+/* ── View Container ───────────────────────────────────────── */
+.view { display: none; flex:1; }
+.view.active { display: flex; flex-direction: column; }
+
+/* ── Topology Visualization ──────────────────────────────── */
+.topology { padding: 24px 32px; }
+
+.switch-header { text-align: center; margin-bottom: 28px; }
+
+.switch-node {
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+    background: linear-gradient(135deg, var(--primary), #3b82f6);
+    color: #fff;
+    padding: 16px 28px;
+    border-radius: var(--radius-lg);
+    box-shadow: 0 4px 16px rgba(37,99,235,0.3);
+    position: relative;
+}
+.switch-node .level-badge {
+    position: absolute; top:-10px; left:14px;
+    background: var(--primary-dark); color: #fff;
+    font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 6px;
+    letter-spacing: 0.3px;
+}
+.switch-label { font-size: 16px; font-weight: 700; }
+.switch-meta { font-size: 11px; opacity: 0.85; margin-top: 3px; font-family: 'SF Mono','Fira Code',monospace; }
+
+.channels-container { display: flex; flex-direction: column; gap: 14px; }
+
+.channel-card {
+    background: var(--card-bg);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    border: 1px solid var(--border-light);
+    transition: all var(--transition);
+}
+.channel-card:hover { box-shadow: var(--shadow-md); }
+
+.channel-header {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 20px;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+}
+.channel-port { font-family: 'SF Mono','Fira Code',monospace; font-weight: 700; font-size: 13px; color: var(--primary); }
+.vlan-badge { background: var(--primary); color: #fff; padding: 3px 12px; border-radius: 20px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.3px; }
+.channel-desc { color: var(--text-muted); font-size: 13px; }
+.security-badge {
+    margin-left: auto;
+    background: var(--success-light); color: var(--success);
+    padding: 4px 12px; border-radius: 20px; font-size: 10.5px; font-weight: 600;
+    display: flex; align-items: center; gap: 5px;
+}
+
+.channel-flow { display: flex; align-items: flex-start; gap:0; padding: 20px; overflow-x: auto; }
+
+.node-card { border-radius: var(--radius); padding: 16px 18px; min-width: 185px; position: relative; border: 2px solid transparent; transition: all var(--transition); }
+.node-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+.io-block-card { background: var(--io-block-light); border-color: var(--io-block); }
+.device-card { background: var(--device-light); border-color: var(--device); }
+
+.node-card .level-badge { position: absolute; top:-10px; left:12px; font-size: 9px; padding: 2px 9px; border-radius: 5px; font-weight: 700; letter-spacing: 0.3px; }
+.level-2 { background: var(--io-block); color: #fff; }
+.level-3 { background: var(--device); color: #fff; }
+
+.node-type { font-size: 9.5px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); font-weight: 700; margin-bottom: 4px; }
+.node-name { font-size: 14px; font-weight: 700; margin-bottom: 10px; word-break: break-all; color: var(--text); }
+.node-details { display: flex; flex-direction: column; gap: 4px; }
+.detail-row { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.detail-label { font-weight: 700; color: var(--text-muted); min-width: 30px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+.detail-value { font-family: 'SF Mono','Fira Code',monospace; font-size: 12px; }
+.ip-value { color: var(--primary); font-weight: 600; }
+.mac-value { color: var(--text-secondary); }
+
+.connector { display: flex; align-items: center; padding: 0 6px; flex-shrink: 0; }
+.connector-line { width: 28px; height: 2px; background: linear-gradient(90deg, var(--border), var(--text-muted), var(--border)); border-radius: 1px; }
+
+.devices-group { display: flex; flex-direction: column; gap: 10px; }
+
+.topology-legend {
+    margin-top: 24px; padding: 18px 22px;
+    background: var(--card-bg); border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--border-light);
+}
+.topology-legend h4 { font-size: 11px; margin-bottom: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px; font-weight: 700; }
+.legend-items { display: flex; gap: 28px; flex-wrap: wrap; }
+.legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-secondary); }
+.legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+.dot-blue { background: var(--primary); }
+.dot-green { background: var(--success); }
+.dot-orange { background: var(--device); }
+.dot-red { background: var(--danger); }
+
+/* ── Editor ───────────────────────────────────────────────── */
+.editor-section {
+    background: var(--card-bg);
+    margin: 14px 32px;
+    padding: 22px;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border-light);
+}
+
+.section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
+.section-header h3 { font-size: 15px; font-weight: 700; }
+
+.subsection { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--border); }
+.subsection h4 { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; font-size: 13.5px; font-weight: 700; }
+
+.form-row { display: flex; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+.form-group { flex:1; min-width: 150px; }
+.form-group-wide { flex:2; min-width: 250px; }
+.form-group-btn { flex:0; min-width: auto; display: flex; align-items: flex-end; padding-bottom: 3px; }
+
+.form-group label { display: block; font-size: 11.5px; font-weight: 600; color: var(--text-secondary); margin-bottom: 5px; letter-spacing: 0.1px; }
+.form-group label small { font-weight: 400; color: var(--text-muted); }
+
+.form-group input,
+.form-group select {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 13px;
+    font-family: inherit;
+    background: var(--input-bg);
+    color: var(--text);
+    transition: all var(--transition);
+}
+.form-group input:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-glow);
+    background: var(--card-bg);
+}
+.form-group input::placeholder { color: var(--text-muted); }
+
+.device-row {
+    padding: 10px 14px;
+    margin-bottom: 8px;
+    background: var(--bg);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    transition: all var(--transition);
+}
+.device-row:hover { border-color: #cbd5e1; }
+
+.add-channel-container { text-align: center; padding: 28px 32px; }
+
+/* ── Toast ────────────────────────────────────────────────── */
+.toast {
+    position: fixed;
+    top: 20px; right: 20px;
+    padding: 14px 20px 14px 16px;
+    border-radius: 10px;
+    font-size: 13.5px;
+    font-weight: 500;
+    z-index: 500;
+    box-shadow: var(--shadow-lg);
+    max-width: 420px;
+    white-space: pre-line;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    transform: translateX(120%);
+    transition: transform 0.35s cubic-bezier(0.2,0.8,0.2,1);
+    line-height: 1.4;
+}
+.toast.show { transform: translateX(0); }
+.toast-success { background: var(--card-bg); color: var(--success); border: 1px solid #bbf7d0; }
+.toast-error { background: var(--card-bg); color: var(--danger); border: 1px solid #fecaca; }
+.toast-icon { flex-shrink: 0; margin-top: 1px; }
+.toast-dismiss {
+    margin-left: auto;
+    background: none; border: none;
+    cursor: pointer; color: var(--text-muted); padding: 0;
+    font-size: 16px; line-height: 1;
+}
+
+/* ── Operations ───────────────────────────────────────────── */
+.operations-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    padding: 14px 32px;
+}
+
+.op-card {
+    background: var(--card-bg);
+    padding: 24px;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border-light);
+}
+.op-card h3 { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+.op-card p { color: var(--text-muted); font-size: 13px; margin-bottom: 18px; line-height: 1.5; }
+
+.op-actions { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+
+.op-note { font-size: 12px; color: var(--text-muted); line-height: 1.6; }
+.op-note code { background: var(--bg); padding: 2px 6px; border-radius: 4px; font-size: 11px; font-family: 'SF Mono','Fira Code',monospace; }
+
+/* Connect Form */
+.connect-card {
+    background: var(--card-bg);
+    margin: 14px 32px;
+    padding: 24px;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border-light);
+}
+.connect-card h3 { font-size: 15px; font-weight: 700; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
+.connect-card .subtitle { font-size: 13px; color: var(--text-muted); margin-bottom: 18px; }
+
+.connect-status {
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    font-weight: 500;
+}
+.connect-status.online { background: var(--success-light); border: 1px solid #bbf7d0; color: var(--success); }
+.connect-status.offline { background: var(--bg); border: 1px solid var(--border); color: var(--text-muted); }
+
+/* Console */
+.console-section {
+    margin: 14px 32px;
+    background: var(--card-bg);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    border: 1px solid var(--border-light);
+}
+.console-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+}
+.console-header h3 { font-size: 13px; font-weight: 700; color: var(--text-secondary); }
+
+.console-output {
+    background: #0f172a;
+    color: #e2e8f0;
+    padding: 20px 22px;
+    font-family: 'SF Mono','Fira Code','Cascadia Code','Consolas',monospace;
+    font-size: 12px;
+    line-height: 1.7;
+    max-height: 500px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 12px;
+    border-radius: 20px;
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.status-running { background: var(--warning-light); color: var(--warning); }
+.status-success { background: var(--success-light); color: var(--success); }
+.status-failed { background: var(--danger-light); color: var(--danger); }
+
+/* ── Saved Topologies ────────────────────────────────────── */
+.topo-list { margin: 14px 32px; }
+
+.topo-table {
+    width: 100%;
+    background: var(--card-bg);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    border-collapse: collapse;
+    border: 1px solid var(--border-light);
+}
+.topo-table th {
+    text-align: left;
+    padding: 14px 22px;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    font-size: 10.5px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+}
+.topo-table td {
+    padding: 14px 22px;
+    border-bottom: 1px solid var(--border-light);
+    font-size: 13px;
+}
+.topo-table tr:last-child td { border-bottom: none; }
+.topo-table tr:hover td { background: var(--bg); }
+
+.topo-name { font-weight: 700; color: var(--primary); }
+.topo-actions { display: flex; gap: 6px; }
+
+/* Modal */
+.modal-overlay {
+    position: fixed;
+    top:0; left:0; right:0; bottom:0;
+    background: rgba(15,23,42,0.5);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 400;
+    animation: fadeIn 0.2s ease;
+}
+@keyframes fadeIn { from{opacity:0} to{opacity:1} }
+@keyframes slideUp { from{transform:translateY(20px);opacity:0} to{transform:translateY(0);opacity:1} }
+
+.modal {
+    background: var(--card-bg);
+    padding: 28px;
+    border-radius: 16px;
+    box-shadow: var(--shadow-lg);
+    width: 420px;
+    max-width: 90vw;
+    animation: slideUp 0.25s ease;
+}
+.modal h3 { font-size: 17px; font-weight: 700; margin-bottom: 18px; }
+.modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
+
+/* Checkbox */
+.checkbox-row {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 13px; margin-bottom: 14px; color: var(--text-secondary);
+}
+.checkbox-row input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--primary); border-radius: 4px; }
+
+/* ── Loading Spinner ──────────────────────────────────────── */
+@keyframes spin { to{transform:rotate(360deg)} }
+.spinner {
+    width: 16px; height: 16px;
+    border: 2px solid transparent;
+    border-top-color: currentColor;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+    display: inline-block;
+}
+.spinner-lg { width: 24px; height: 24px; border-width: 3px; }
+
+/* ── Responsive ───────────────────────────────────────────── */
+@media (max-width: 1024px) {
+    .operations-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 768px) {
+    .sidebar { width: 64px; }
+    .brand-text, .sidebar-footer, .nav-links a span:not(.icon) { display: none; }
+    .sidebar-header { padding: 16px; }
+    .sidebar-brand { justify-content: center; }
+    .nav-links a { justify-content: center; padding: 12px; }
+    .content { margin-left: 64px; }
+    .channel-flow { flex-direction: column; align-items: stretch; }
+    .connector { transform: rotate(90deg); padding: 4px 0; }
+    .page-header, .stats-bar, .editor-section, .connect-card, .operations-grid, .console-section, .topo-list, .topology { padding-left: 16px; padding-right: 16px; }
+}
+    </style>
+</head>
+<body>
+
+<!-- ═══════════════ SVG SPRITE (hidden) ═══════════════ -->
+<svg style="display:none">
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></symbol>
+    <symbol id="i-layout" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></symbol>
+    <symbol id="i-edit" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></symbol>
+    <symbol id="i-upload" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></symbol>
+    <symbol id="i-save" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></symbol>
+    <symbol id="i-terminal" viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></symbol>
+    <symbol id="i-database" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></symbol>
+    <symbol id="i-plug" viewBox="0 0 24 24"><path d="M12 22v-5"/><path d="M9 8V1h6v7"/><path d="M7 8h10a2 2 0 012 2v2a5 5 0 01-5 5h-4a5 5 0 01-5-5v-2a2 2 0 012-2z"/></symbol>
+    <symbol id="i-check-circle" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></symbol>
+    <symbol id="i-x-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></symbol>
+    <symbol id="i-switch" viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="3"/><line x1="6" y1="9" x2="6" y2="9.01"/><line x1="10" y1="9" x2="10" y2="9.01"/><line x1="14" y1="9" x2="14" y2="9.01"/><line x1="18" y1="9" x2="18" y2="9.01"/><line x1="6" y1="15" x2="6" y2="15.01"/><line x1="10" y1="15" x2="10" y2="15.01"/><line x1="14" y1="15" x2="14" y2="15.01"/><line x1="18" y1="15" x2="18" y2="15.01"/></symbol>
+    <symbol id="i-loader" viewBox="0 0 24 24"><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/></symbol>
+</svg>
+
+<!-- ═══════════════ SIDEBAR ═══════════════ -->
+<nav class="sidebar">
+    <div class="sidebar-header">
+        <div class="sidebar-brand">
+            <div class="brand-icon"><svg class="icon" style="stroke:white"><use href="#i-shield"/></svg></div>
+            <div class="brand-text">
+                <h1>Channel Guard</h1>
+                <div class="subtitle">Cisco Port Security</div>
+            </div>
+        </div>
+    </div>
+    <ul class="nav-links">
+        <li><a onclick="showView('dashboard')" id="nav-dashboard" class="active">
+            <svg class="icon"><use href="#i-layout"/></svg> <span>Dashboard</span>
+        </a></li>
+        <li><a onclick="showView('editor')" id="nav-editor">
+            <svg class="icon"><use href="#i-edit"/></svg> <span>Topology Editor</span>
+        </a></li>
+        <li><a onclick="showView('deploy')" id="nav-deploy">
+            <svg class="icon"><use href="#i-terminal"/></svg> <span>Deploy &amp; Verify</span>
+        </a></li>
+        <li><a onclick="showView('saved')" id="nav-saved">
+            <svg class="icon"><use href="#i-database"/></svg> <span>Saved Topologies</span>
+        </a></li>
+    </ul>
+    <div class="sidebar-footer">
+        IP Source Guard + Port Security
+    </div>
+</nav>
+
+<!-- ═══════════════ MAIN CONTENT ═══════════════ -->
+<main class="content">
+
+    <!-- Connection Status Bar -->
+    <div class="connection-bar" id="connection-bar">
+        <div class="conn-indicator disconnected" id="conn-dot"></div>
+        <div class="conn-text" id="conn-text">Not connected to any switch</div>
+        <button class="conn-btn" id="conn-action" onclick="showView('deploy')">Connect</button>
+    </div>
+
+    <!-- ════════════ VIEW: DASHBOARD ════════════ -->
+    <div class="view active" id="view-dashboard">
+        <header class="page-header">
+            <h2>Network Topology</h2>
+            <div class="header-actions">
+                <button class="btn btn-secondary" onclick="showView('editor')"><svg class="icon icon-sm"><use href="#i-edit"/></svg> Edit Topology</button>
+            </div>
+        </header>
+        <div class="stats-bar" id="dashboard-stats"></div>
+        <div id="dashboard-content" style="flex:1;"></div>
+    </div>
+
+    <!-- ════════════ VIEW: EDITOR ════════════ -->
+    <div class="view" id="view-editor">
+        <header class="page-header">
+            <h2>Topology Editor</h2>
+            <div class="header-actions">
+                <button class="btn btn-secondary" onclick="importTopology()"><svg class="icon icon-sm"><use href="#i-upload"/></svg> Import</button>
+                <button class="btn btn-secondary" onclick="exportTopology()"><svg class="icon icon-sm"><use href="#i-download"/></svg> Export</button>
+                <button class="btn btn-primary" onclick="saveTopology()"><svg class="icon icon-sm"><use href="#i-save"/></svg> Save Topology</button>
+            </div>
+        </header>
+
+        <div class="editor-section">
+            <h3>Global Settings</h3>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="ios_version">IOS Version</label>
+                    <select id="ios_version">
+                        <option value="classic">Classic (IOS 12.x/15.x)</option>
+                        <option value="xe">IOS-XE (16.x+)</option>
+                    </select>
+                </div>
+                <div class="form-group form-group-wide">
+                    <label for="uplinks">Uplink Interfaces <small>(comma-separated)</small></label>
+                    <input type="text" id="uplinks" placeholder="GigabitEthernet1/0/48">
+                </div>
+            </div>
+        </div>
+
+        <div id="channels-container"></div>
+
+        <div class="add-channel-container">
+            <button class="btn btn-primary btn-lg" onclick="addChannel()"><svg class="icon icon-sm"><use href="#i-plus"/></svg> Add Channel</button>
+        </div>
+
+        <input type="file" id="file-import" accept=".yml,.yaml" style="display:none" onchange="handleFileImport(event)">
+    </div>
+
+    <!-- ════════════ VIEW: DEPLOY & VERIFY ════════════ -->
+    <div class="view" id="view-deploy">
+        <header class="page-header">
+            <h2>Deploy &amp; Verify</h2>
+        </header>
+
+        <div class="connect-card">
+            <h3><svg class="icon"><use href="#i-plug"/></svg> Switch Connection</h3>
+            <p class="subtitle">Connect to a Cisco IOS switch via SSH to deploy or verify configuration.</p>
+
+            <div class="connect-status offline" id="deploy-conn-status">
+                <div class="conn-indicator disconnected" id="deploy-conn-dot"></div>
+                <span id="deploy-conn-text">Not connected</span>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group"><label for="switch-ip">Switch IP Address</label><input type="text" id="switch-ip" placeholder="192.168.1.1"></div>
+                <div class="form-group"><label for="switch-user">Username</label><input type="text" id="switch-user" placeholder="admin"></div>
+                <div class="form-group"><label for="switch-pass">Password</label><input type="password" id="switch-pass" placeholder="Password"></div>
+                <div class="form-group"><label for="switch-enable">Enable Password <small>(optional)</small></label><input type="password" id="switch-enable" placeholder="Enable password"></div>
+            </div>
+            <div class="op-actions">
+                <button class="btn btn-primary" id="btn-connect" onclick="connectSwitch()"><svg class="icon icon-sm"><use href="#i-plug"/></svg> Connect</button>
+                <button class="btn btn-danger" id="btn-disconnect" onclick="disconnectSwitch()" style="display:none;"><svg class="icon icon-sm"><use href="#i-x"/></svg> Disconnect</button>
+            </div>
+        </div>
+
+        <div class="operations-grid">
+            <div class="op-card">
+                <h3>Deploy Configuration</h3>
+                <p>Push IP Source Guard and Port Security settings to the connected switch.</p>
+                <div class="op-actions">
+                    <button class="btn btn-secondary" onclick="previewCommands()" id="btn-preview"><svg class="icon icon-sm"><use href="#i-eye"/></svg> Preview</button>
+                    <button class="btn btn-primary" onclick="deployConfig()" id="btn-deploy"><svg class="icon icon-sm"><use href="#i-play"/></svg> Deploy</button>
+                </div>
+                <div class="checkbox-row">
+                    <input type="checkbox" id="save-nvram" checked>
+                    <label for="save-nvram">Save to NVRAM after deploy (write memory)</label>
+                </div>
+            </div>
+            <div class="op-card">
+                <h3>Verify Configuration</h3>
+                <p>Query the switch to confirm bindings, port-security, and DHCP snooping.</p>
+                <div class="op-actions">
+                    <button class="btn btn-secondary" onclick="verifyConfig()" id="btn-verify"><svg class="icon icon-sm"><use href="#i-check-circle"/></svg> Verify</button>
+                </div>
+                <div class="op-note">
+                    Runs <code>show ip source binding</code>, <code>show ip verify source</code>,
+                    <code>show port-security</code>, and <code>show ip dhcp snooping</code>.
+                </div>
+            </div>
+        </div>
+
+        <div class="console-section" id="console-section" style="display:none;">
+            <div class="console-header">
+                <h3 id="console-title">Output</h3>
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <span id="console-status" class="status-badge"></span>
+                    <button class="btn btn-sm btn-ghost" onclick="clearConsole()"><svg class="icon icon-sm"><use href="#i-x"/></svg></button>
+                </div>
+            </div>
+            <pre class="console-output" id="console-output"></pre>
+        </div>
+    </div>
+
+    <!-- ════════════ VIEW: SAVED TOPOLOGIES ════════════ -->
+    <div class="view" id="view-saved">
+        <header class="page-header">
+            <h2>Saved Topologies</h2>
+            <div class="header-actions">
+                <button class="btn btn-primary" onclick="showSaveAsModal()"><svg class="icon icon-sm"><use href="#i-save"/></svg> Save Current As...</button>
+            </div>
+        </header>
+        <div class="topo-list" id="topo-list"></div>
+    </div>
+</main>
+
+<!-- Toast -->
+<div class="toast" id="toast"><span class="toast-icon"></span><span class="toast-msg"></span><button class="toast-dismiss" onclick="hideToast()">&times;</button></div>
+
+<!-- ═══════════════ TEMPLATES ═══════════════ -->
+<template id="channel-template">
+    <div class="editor-section channel-section" data-channel="__IDX__">
+        <div class="section-header">
+            <h3>Channel __NUM__</h3>
+            <button class="btn btn-danger btn-sm" onclick="removeChannel(this)"><svg class="icon icon-sm"><use href="#i-trash"/></svg> Remove</button>
+        </div>
+        <div class="form-row">
+            <div class="form-group"><label>Port Interface</label><input type="text" class="ch-port" placeholder="GigabitEthernet1/0/__NUM__"></div>
+            <div class="form-group"><label>VLAN</label><input type="number" class="ch-vlan" min="1" max="4094" placeholder="10"></div>
+            <div class="form-group form-group-wide"><label>Description</label><input type="text" class="ch-desc" placeholder="Robot Cell A"></div>
+        </div>
+        <div class="subsection">
+            <h4><span class="level-badge level-2">L2</span> I/O Block</h4>
+            <div class="form-row">
+                <div class="form-group"><label>Name</label><input type="text" class="io-name" placeholder="IO_Block_Name"></div>
+                <div class="form-group"><label>IP Address</label><input type="text" class="io-ip" placeholder="192.168.10.1"></div>
+                <div class="form-group"><label>MAC Address <small>(xxxx.xxxx.xxxx)</small></label><input type="text" class="io-mac" placeholder="0011.2233.4455"></div>
+            </div>
+        </div>
+        <div class="subsection">
+            <div class="section-header">
+                <h4><span class="level-badge level-3">L3</span> Devices</h4>
+                <button class="btn btn-secondary btn-sm" onclick="addDevice(this)"><svg class="icon icon-sm"><use href="#i-plus"/></svg> Add Device</button>
+            </div>
+            <div class="devices-list"></div>
+        </div>
+    </div>
+</template>
+
+<template id="device-template">
+    <div class="device-row">
+        <div class="form-row">
+            <div class="form-group"><label>Name</label><input type="text" class="dev-name" placeholder="Device_Name"></div>
+            <div class="form-group">
+                <label>Type</label>
+                <select class="dev-type">
+                    <option value="printer">Printer</option>
+                    <option value="reader">Barcode Reader</option>
+                    <option value="camera">Camera</option>
+                    <option value="sensor">Sensor</option>
+                    <option value="plc">PLC</option>
+                    <option value="hmi">HMI</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+            <div class="form-group"><label>IP Address</label><input type="text" class="dev-ip" placeholder="192.168.10.10"></div>
+            <div class="form-group"><label>MAC Address</label><input type="text" class="dev-mac" placeholder="aa00.bb11.cc22"></div>
+            <div class="form-group form-group-btn"><button class="btn btn-danger btn-sm" onclick="removeDevice(this)"><svg class="icon icon-sm"><use href="#i-x"/></svg></button></div>
+        </div>
+    </div>
+</template>
+
+<!-- ═══════════════ JAVASCRIPT ═══════════════ -->
+<script>
+const state = { currentView:'dashboard', topology:null, stats:null, connection:{connected:false,host:null} };
+
+const api = {
+    async get(u) { const r=await fetch(u); return r.json(); },
+    async post(u,d) { const r=await fetch(u,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)}); return {ok:r.ok,status:r.status,data:await r.json()}; },
+    async upload(u,f) { const fd=new FormData(); fd.append('file',f); const r=await fetch(u,{method:'POST',body:fd}); return {ok:r.ok,data:await r.json()}; },
+};
+
+/* ── Toast ──────────────────────────────────────────────── */
+function showToast(message, type='success') {
+    const t=document.getElementById('toast');
+    const icon = type==='success'
+        ? '<svg class="icon icon-sm" style="color:var(--success)"><use href="#i-check-circle"/></svg>'
+        : '<svg class="icon icon-sm" style="color:var(--danger)"><use href="#i-x-circle"/></svg>';
+    t.querySelector('.toast-icon').innerHTML = icon;
+    t.querySelector('.toast-msg').textContent = message;
+    t.className = `toast toast-${type} show`;
+    clearTimeout(t._timer);
+    t._timer = setTimeout(hideToast, 5000);
+}
+function hideToast() {
+    const t=document.getElementById('toast');
+    t.classList.remove('show');
+}
+
+/* ── Navigation ─────────────────────────────────────────── */
+function showView(name) {
+    state.currentView = name;
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.querySelectorAll('.nav-links a').forEach(a => a.classList.remove('active'));
+    document.getElementById('view-'+name).classList.add('active');
+    document.getElementById('nav-'+name).classList.add('active');
+    if (name==='dashboard') loadDashboard();
+    if (name==='editor') loadEditor();
+    if (name==='deploy') updateDeployStatus();
+    if (name==='saved') loadSavedTopologies();
+}
+
+/* ── Connection ─────────────────────────────────────────── */
+async function updateConnectionStatus() {
+    try {
+        const d = await api.get('/api/status');
+        state.connection = d;
+        const dot=document.getElementById('conn-dot'), text=document.getElementById('conn-text'), action=document.getElementById('conn-action');
+        if (d.connected) {
+            dot.className='conn-indicator connected';
+            text.innerHTML='Connected to: <strong>'+esc(d.host)+'</strong>';
+            action.textContent='Disconnect'; action.className='conn-btn danger'; action.onclick=disconnectSwitch;
+        } else {
+            dot.className='conn-indicator disconnected';
+            text.textContent='Not connected to any switch';
+            action.textContent='Connect'; action.className='conn-btn'; action.onclick=function(){showView('deploy')};
+        }
+        updateDeployStatus();
+    } catch(e){}
+}
+
+function updateDeployStatus() {
+    const dot=document.getElementById('deploy-conn-dot'), text=document.getElementById('deploy-conn-text');
+    const st=document.getElementById('deploy-conn-status'), bc=document.getElementById('btn-connect'), bd=document.getElementById('btn-disconnect');
+    if (state.connection.connected) {
+        dot.className='conn-indicator connected';
+        text.innerHTML='Connected to <strong>'+esc(state.connection.host)+'</strong>';
+        if (state.connection.device_info) text.innerHTML+=' &mdash; '+esc(state.connection.device_info);
+        st.className='connect-status online'; bc.style.display='none'; bd.style.display='inline-flex';
+    } else {
+        dot.className='conn-indicator disconnected'; text.textContent='Not connected';
+        st.className='connect-status offline'; bc.style.display='inline-flex'; bd.style.display='none';
+    }
+}
+
+async function connectSwitch() {
+    const host=document.getElementById('switch-ip').value.trim();
+    const username=document.getElementById('switch-user').value.trim();
+    const password=document.getElementById('switch-pass').value;
+    const enable=document.getElementById('switch-enable').value;
+    if (!host||!username||!password) { showToast('Please fill in IP, username, and password.','error'); return; }
+    const btn=document.getElementById('btn-connect');
+    btn.disabled=true; btn.innerHTML='<span class="spinner"></span> Connecting...';
+    try {
+        const r=await api.post('/api/connect',{host,username,password,enable_password:enable});
+        if (r.ok&&r.data.success) { showToast('Connected to '+host); state.connection={connected:true,host,...r.data}; updateConnectionStatus(); }
+        else showToast(r.data.error||'Connection failed','error');
+    } catch(e) { showToast('Connection error: '+e.message,'error'); }
+    btn.disabled=false; btn.innerHTML='<svg class="icon icon-sm"><use href="#i-plug"/></svg> Connect';
+}
+
+async function disconnectSwitch() {
+    try { await api.post('/api/disconnect',{}); state.connection={connected:false,host:null}; showToast('Disconnected'); updateConnectionStatus(); }
+    catch(e) { showToast('Error: '+e.message,'error'); }
+}
+
+/* ── Dashboard ──────────────────────────────────────────── */
+async function loadDashboard() {
+    try {
+        const r=await api.get('/api/topology');
+        if (r.error) { renderEmptyDashboard(); return; }
+        state.topology=r.topology; state.stats=r.stats;
+        renderDashboard(r.topology, r.stats);
+    } catch(e) { renderEmptyDashboard(); }
+}
+
+function renderEmptyDashboard() {
+    document.getElementById('dashboard-stats').innerHTML='';
+    document.getElementById('dashboard-content').innerHTML=`
+        <div class="empty-state">
+            <svg class="icon-xl" style="color:#cbd5e1;margin:0 auto 20px;display:block;width:56px;height:56px;stroke-width:1.5"><use href="#i-shield"/></svg>
+            <h3>No Topology Configured</h3>
+            <p>Get started by defining your network topology in the editor.</p>
+            <button class="btn btn-primary" onclick="showView('editor')"><svg class="icon icon-sm"><use href="#i-edit"/></svg> Open Editor</button>
+        </div>`;
+}
+
+function renderDashboard(topo, stats) {
+    document.getElementById('dashboard-stats').innerHTML=`
+        <div class="stat-card"><div class="stat-value">${stats.channels}</div><div class="stat-label">Channels</div></div>
+        <div class="stat-card"><div class="stat-value">${stats.io_blocks}</div><div class="stat-label">I/O Blocks</div></div>
+        <div class="stat-card"><div class="stat-value">${stats.devices}</div><div class="stat-label">Devices</div></div>
+        <div class="stat-card"><div class="stat-value">${stats.bindings}</div><div class="stat-label">Bindings</div></div>
+        <div class="stat-card"><div class="stat-value">${stats.vlans.length}</div><div class="stat-label">VLANs</div></div>
+        <div class="stat-card"><div class="stat-value">${stats.total_commands}</div><div class="stat-label">IOS Commands</div></div>`;
+
+    const channels=topo.channels||[];
+    if (!channels.length) { renderEmptyDashboard(); return; }
+
+    let h='<div class="topology"><div class="switch-header"><div class="switch-node"><span class="level-badge">Level 1</span><svg class="icon" style="stroke:white"><use href="#i-switch"/></svg><div><div class="switch-label">Cisco Switch</div><div class="switch-meta">IOS: '+esc(topo.ios_version||'classic')+' &middot; Uplinks: '+esc((topo.uplinks||[]).join(', ')||'None')+'</div></div></div></div>';
+    h+='<div class="channels-container">';
+    channels.forEach(ch=>{
+        const mm=(ch.devices||[]).length+1;
+        h+=`<div class="channel-card"><div class="channel-header"><div class="channel-port">${esc(ch.port)}</div><span class="vlan-badge">VLAN ${ch.vlan}</span><span class="channel-desc">${esc(ch.description||'')}</span><span class="security-badge"><svg class="icon icon-sm"><use href="#i-lock"/></svg> ${mm} MACs</span></div><div class="channel-flow"><div class="node-card io-block-card"><span class="level-badge level-2">L2</span><div class="node-type">I/O Block</div><div class="node-name">${esc(ch.io_block.name)}</div><div class="node-details"><div class="detail-row"><span class="detail-label">IP</span><span class="detail-value ip-value">${esc(ch.io_block.ip)}</span></div><div class="detail-row"><span class="detail-label">MAC</span><span class="detail-value mac-value">${esc(ch.io_block.mac)}</span></div></div></div><div class="connector"><div class="connector-line"></div></div><div class="devices-group">`;
+        (ch.devices||[]).forEach(d=>{
+            h+=`<div class="node-card device-card"><span class="level-badge level-3">L3</span><div class="node-type">${esc(d.type||'device')}</div><div class="node-name">${esc(d.name)}</div><div class="node-details"><div class="detail-row"><span class="detail-label">IP</span><span class="detail-value ip-value">${esc(d.ip)}</span></div><div class="detail-row"><span class="detail-label">MAC</span><span class="detail-value mac-value">${esc(d.mac)}</span></div></div></div>`;
+        });
+        h+='</div></div></div>';
+    });
+    h+='</div>';
+    h+=`<div class="topology-legend"><h4>Security Applied per Port</h4><div class="legend-items"><div class="legend-item"><span class="legend-dot dot-blue"></span>IP Source Guard (whitelist IP+MAC)</div><div class="legend-item"><span class="legend-dot dot-green"></span>Port Security (limit MAC count)</div><div class="legend-item"><span class="legend-dot dot-orange"></span>BPDU Guard (block rogue switches)</div><div class="legend-item"><span class="legend-dot dot-red"></span>Violation: restrict (log &amp; drop)</div></div></div></div>`;
+    document.getElementById('dashboard-content').innerHTML=h;
+}
+
+/* ── Editor ─────────────────────────────────────────────── */
+async function loadEditor() {
+    try {
+        const r=await api.get('/api/topology');
+        state.topology = r.error ? {ios_version:'classic',uplinks:['GigabitEthernet1/0/48'],channels:[]} : r.topology;
+    } catch(e) { state.topology={ios_version:'classic',uplinks:['GigabitEthernet1/0/48'],channels:[]}; }
+    renderEditor(state.topology);
+}
+
+function renderEditor(t) {
+    document.getElementById('ios_version').value=t.ios_version||'classic';
+    document.getElementById('uplinks').value=(t.uplinks||[]).join(', ');
+    const c=document.getElementById('channels-container'); c.innerHTML='';
+    (t.channels||[]).forEach((ch,i)=>addChannelToDOM(ch,i));
+}
+
+function addChannelToDOM(ch,idx) {
+    const c=document.getElementById('channels-container'), tpl=document.getElementById('channel-template');
+    let html=tpl.innerHTML.replace(/__IDX__/g,idx).replace(/__NUM__/g,idx+1);
+    const w=document.createElement('div'); w.innerHTML=html;
+    const s=w.firstElementChild; c.appendChild(s);
+    if(ch){
+        s.querySelector('.ch-port').value=ch.port||'';
+        s.querySelector('.ch-vlan').value=ch.vlan||'';
+        s.querySelector('.ch-desc').value=ch.description||'';
+        s.querySelector('.io-name').value=(ch.io_block||{}).name||'';
+        s.querySelector('.io-ip').value=(ch.io_block||{}).ip||'';
+        s.querySelector('.io-mac').value=(ch.io_block||{}).mac||'';
+        (ch.devices||[]).forEach(d=>addDeviceToSection(s,d));
+    }
+}
+
+function addChannel() { addChannelToDOM(null,document.querySelectorAll('.channel-section').length); renumberChannels(); }
+function removeChannel(btn) { if(!confirm('Remove this channel?'))return; btn.closest('.channel-section')?.remove(); renumberChannels(); }
+function renumberChannels() { document.querySelectorAll('.channel-section').forEach((s,i)=>{ const h=s.querySelector('h3'); if(h) h.textContent=`Channel ${i+1}`; }); }
+function addDevice(btn) { addDeviceToSection(btn.closest('.channel-section'),null); }
+
+function addDeviceToSection(section,dev) {
+    const list=section.querySelector('.devices-list'), tpl=document.getElementById('device-template');
+    const w=document.createElement('div'); w.innerHTML=tpl.innerHTML;
+    const row=w.firstElementChild; list.appendChild(row);
+    if(dev){ row.querySelector('.dev-name').value=dev.name||''; row.querySelector('.dev-type').value=dev.type||'other'; row.querySelector('.dev-ip').value=dev.ip||''; row.querySelector('.dev-mac').value=dev.mac||''; }
+}
+
+function removeDevice(btn) { btn.closest('.device-row')?.remove(); }
+
+function collectFormData() {
+    const d={ios_version:document.getElementById('ios_version').value,uplinks:document.getElementById('uplinks').value.split(',').map(s=>s.trim()).filter(s=>s),channels:[]};
+    document.querySelectorAll('.channel-section').forEach(s=>{
+        const ch={port:s.querySelector('.ch-port')?.value||'',vlan:parseInt(s.querySelector('.ch-vlan')?.value)||0,description:s.querySelector('.ch-desc')?.value||'',io_block:{name:s.querySelector('.io-name')?.value||'',ip:s.querySelector('.io-ip')?.value||'',mac:s.querySelector('.io-mac')?.value||''},devices:[]};
+        s.querySelectorAll('.device-row').forEach(r=>ch.devices.push({name:r.querySelector('.dev-name')?.value||'',type:r.querySelector('.dev-type')?.value||'other',ip:r.querySelector('.dev-ip')?.value||'',mac:r.querySelector('.dev-mac')?.value||''}));
+        d.channels.push(ch);
+    });
+    return d;
+}
+
+async function saveTopology() {
+    const d=collectFormData();
+    try {
+        const r=await api.post('/api/topology',d);
+        if(r.ok){showToast('Topology saved successfully!');state.topology=d;}
+        else{const det=r.data.details?'\n'+r.data.details.join('\n'):'';showToast((r.data.error||'Save failed')+det,'error');}
+    } catch(e){showToast('Error: '+e.message,'error');}
+}
+
+function exportTopology(){window.location.href='/api/topology/export';}
+function importTopology(){document.getElementById('file-import').click();}
+
+async function handleFileImport(ev) {
+    const f=ev.target.files[0]; if(!f)return;
+    try{
+        const r=await api.upload('/api/topology/import',f);
+        if(r.ok){showToast('Topology imported!');state.topology=r.data.topology;renderEditor(state.topology);}
+        else{showToast((r.data.error||'Import failed'),'error');}
+    }catch(e){showToast('Import error: '+e.message,'error');}
+    ev.target.value='';
+}
+
+/* ── Deploy & Verify ────────────────────────────────────── */
+function showConsole(title) {
+    const s=document.getElementById('console-section'),o=document.getElementById('console-output'),st=document.getElementById('console-status'),t=document.getElementById('console-title');
+    s.style.display='block'; o.textContent='Running... please wait.\n'; st.textContent='RUNNING'; st.className='status-badge status-running'; t.textContent=title;
+    s.scrollIntoView({behavior:'smooth'});
+}
+function setConsoleResult(text,success) {
+    document.getElementById('console-output').textContent=text||'(no output)';
+    const st=document.getElementById('console-status'); st.textContent=success?'SUCCESS':'FAILED'; st.className='status-badge '+(success?'status-success':'status-failed');
+}
+function clearConsole(){document.getElementById('console-section').style.display='none';}
+function setDeployBtns(d){['btn-preview','btn-deploy','btn-verify'].forEach(id=>{const b=document.getElementById(id);if(b)b.disabled=d;});}
+
+async function previewCommands() {
+    showConsole('Command Preview'); setDeployBtns(true);
+    try{
+        const r=await api.get('/api/preview');
+        if(r.error){setConsoleResult('Error: '+r.error,false);}
+        else{setConsoleResult(`! Cisco Channel Guard - IOS Commands Preview\n! Channels: ${r.summary.channels}  |  Bindings: ${r.summary.bindings}  |  Commands: ${r.summary.total_commands}\n${'!'.padEnd(56,'=')}\n\n`+r.commands.join('\n'),true);}
+    }catch(e){setConsoleResult('Error: '+e.message,false);}
+    setDeployBtns(false);
+}
+
+async function deployConfig() {
+    if(!state.connection.connected){showToast('Connect to a switch first.','error');return;}
+    if(!confirm('Deploy configuration to '+state.connection.host+'?\nThis will modify the switch running config.'))return;
+    showConsole('Deploy Output'); setDeployBtns(true);
+    try{
+        const r=await api.post('/api/deploy',{save_config:document.getElementById('save-nvram').checked});
+        if(r.data.success){let t=r.data.output||'';if(r.data.save_output)t+='\n\n--- Write Memory ---\n'+r.data.save_output;t+='\n\n--- '+r.data.commands_sent+' commands sent ---';setConsoleResult(t,true);showToast('Configuration deployed!');}
+        else setConsoleResult('Error: '+(r.data.error||'Deploy failed'),false);
+    }catch(e){setConsoleResult('Error: '+e.message,false);}
+    setDeployBtns(false);
+}
+
+async function verifyConfig() {
+    if(!state.connection.connected){showToast('Connect to a switch first.','error');return;}
+    showConsole('Verification Output'); setDeployBtns(true);
+    try{
+        const r=await api.post('/api/verify',{});
+        if(r.data.success){let t='';r.data.results.forEach(v=>{t+='\n'+'='.repeat(60)+'\n  '+v.command+'\n'+'='.repeat(60)+'\n'+v.output+'\n';});setConsoleResult(t,true);}
+        else{let t='Error: '+(r.data.error||'Failed')+'\n';if(r.data.results)r.data.results.forEach(v=>{t+='\n--- '+v.command+' ---\n'+v.output+'\n';});setConsoleResult(t,false);}
+    }catch(e){setConsoleResult('Error: '+e.message,false);}
+    setDeployBtns(false);
+}
+
+/* ── Saved Topologies ───────────────────────────────────── */
+async function loadSavedTopologies() {
+    const c=document.getElementById('topo-list');
+    try{
+        const r=await api.get('/api/topology/list');
+        const files=r.files||[];
+        if(!files.length){c.innerHTML='<div class="empty-state"><svg class="icon-xl" style="color:#cbd5e1;margin:0 auto 20px;display:block;width:56px;height:56px;stroke-width:1.5"><use href="#i-database"/></svg><h3>No Saved Topologies</h3><p>Create a topology in the editor and use "Save Current As..." to save it here.</p></div>';return;}
+        let h='<table class="topo-table"><thead><tr><th>Name</th><th>Channels</th><th>Size</th><th>Actions</th></tr></thead><tbody>';
+        files.forEach(f=>{
+            const kb=(f.size/1024).toFixed(1),active=f.filename==='network.yml';
+            h+=`<tr><td><span class="topo-name">${esc(f.name)}</span>${active?'<span class="status-badge status-success" style="margin-left:8px;">Active</span>':''}</td><td>${f.channels} channel${f.channels!==1?'s':''}</td><td>${kb} KB</td><td class="topo-actions"><button class="btn btn-sm btn-primary" onclick="loadNamedTopology('${esc(f.name)}')">Load</button><button class="btn btn-sm btn-secondary" onclick="exportTopology()">Export</button>${!active?`<button class="btn btn-sm btn-danger" onclick="deleteTopology('${esc(f.name)}')"><svg class="icon icon-sm"><use href="#i-trash"/></svg></button>`:''}</td></tr>`;
+        });
+        h+='</tbody></table>'; c.innerHTML=h;
+    }catch(e){c.innerHTML='<p style="padding:32px;color:var(--danger);">Error: '+e.message+'</p>';}
+}
+
+async function loadNamedTopology(n){if(!confirm('Load "'+n+'" as active?'))return;try{const r=await api.post('/api/topology/load',{name:n});if(r.ok){showToast('"'+n+'" loaded');loadSavedTopologies();}else showToast(r.data.error||'Failed','error');}catch(e){showToast('Error: '+e.message,'error');}}
+
+async function deleteTopology(n){if(!confirm('Delete "'+n+'"? This cannot be undone.'))return;try{const r=await api.post('/api/topology/delete',{name:n});if(r.ok){showToast('"'+n+'" deleted');loadSavedTopologies();}else showToast(r.data.error||'Failed','error');}catch(e){showToast('Error: '+e.message,'error');}}
+
+function showSaveAsModal() {
+    const o=document.createElement('div'); o.className='modal-overlay';
+    o.innerHTML=`<div class="modal"><h3>Save Topology As</h3><div class="form-group"><label>Topology Name</label><input type="text" id="save-as-name" placeholder="e.g. factory-line-a" autofocus></div><p style="font-size:12px;color:var(--text-muted);margin-top:8px;">Only letters, numbers, hyphens, and underscores.</p><div class="modal-actions"><button class="btn btn-secondary" onclick="this.closest('.modal-overlay').remove()">Cancel</button><button class="btn btn-primary" onclick="doSaveAs()"><svg class="icon icon-sm"><use href="#i-save"/></svg> Save</button></div></div>`;
+    document.body.appendChild(o); o.querySelector('input').focus();
+    o.querySelector('input').addEventListener('keydown',e=>{if(e.key==='Enter')doSaveAs();if(e.key==='Escape')o.remove();});
+    o.addEventListener('click',e=>{if(e.target===o)o.remove();});
+}
+
+async function doSaveAs() {
+    const n=document.getElementById('save-as-name').value.trim().replace(/[^a-zA-Z0-9_\-]/g,'');
+    if(!n){showToast('Enter a valid name.','error');return;}
+    try{const r=await api.post('/api/topology/save-as',{name:n});if(r.ok){showToast('Saved as "'+n+'"');document.querySelector('.modal-overlay')?.remove();loadSavedTopologies();}else showToast(r.data.error||'Failed','error');}catch(e){showToast('Error: '+e.message,'error');}
+}
+
+/* ── Utils ──────────────────────────────────────────────── */
+function esc(s){if(!s)return'';const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+
+/* ── Init ───────────────────────────────────────────────── */
+document.addEventListener('DOMContentLoaded',()=>{updateConnectionStatus();loadDashboard();setInterval(updateConnectionStatus,30000);});
+</script>
+</body>
+</html>
