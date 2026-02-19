@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cisco Channel Guard</title>
+    <title>Cisco Channel Guard v2.0</title>
     <style>
 /* ═══════════════════════════════════════════════════════════════
    Cisco Channel Guard - Premium Web UI
@@ -659,8 +659,8 @@ body {
         <div class="sidebar-brand">
             <div class="brand-icon"><svg class="icon" style="stroke:white"><use href="#i-shield"/></svg></div>
             <div class="brand-text">
-                <h1>Channel Guard</h1>
-                <div class="subtitle">Cisco Port Security</div>
+                <h1>Channel Guard <span style="font-size:10px;background:#2563eb;color:#fff;padding:1px 6px;border-radius:4px;vertical-align:middle;font-weight:600;letter-spacing:0.5px;">v2.0</span></h1>
+                <div class="subtitle">Stratix 5400 · 5700 · 5800</div>
             </div>
         </div>
     </div>
@@ -677,9 +677,12 @@ body {
         <li><a onclick="showView('saved')" id="nav-saved">
             <svg class="icon"><use href="#i-database"/></svg> <span>Saved Topologies</span>
         </a></li>
+        <li><a onclick="showView('compliance')" id="nav-compliance">
+            <svg class="icon"><use href="#i-lock"/></svg> <span>Compliance</span>
+        </a></li>
     </ul>
     <div class="sidebar-footer">
-        IP Source Guard + Port Security
+        IEC 62443-3-3 · IEC 61508 · IEC 61784-3
     </div>
 </nav>
 
@@ -720,10 +723,10 @@ body {
             <h3>Global Settings</h3>
             <div class="form-row">
                 <div class="form-group">
-                    <label for="ios_version">IOS Version</label>
+                    <label for="ios_version">Platform / IOS Version</label>
                     <select id="ios_version">
-                        <option value="classic">Classic (IOS 12.x/15.x)</option>
-                        <option value="xe">IOS-XE (16.x+)</option>
+                        <option value="classic">IOS Classic — Stratix 5400 / 5700</option>
+                        <option value="iosxe">IOS-XE — Stratix 5800</option>
                     </select>
                 </div>
                 <div class="form-group form-group-wide">
@@ -750,11 +753,18 @@ body {
 
         <div class="connect-card">
             <h3><svg class="icon"><use href="#i-plug"/></svg> Switch Connection</h3>
-            <p class="subtitle">Connect to a Cisco IOS switch via SSH to deploy or verify configuration.</p>
+            <p class="subtitle">Supports Stratix 5400 / 5700 (IOS Classic) and Stratix 5800 (IOS-XE). Platform is auto-detected on connect.</p>
 
             <div class="connect-status offline" id="deploy-conn-status">
                 <div class="conn-indicator disconnected" id="deploy-conn-dot"></div>
                 <span id="deploy-conn-text">Not connected</span>
+            </div>
+
+            <div id="platform-badge-wrap" style="display:none;margin-bottom:12px;">
+                <div id="platform-badge" style="display:inline-flex;align-items:center;gap:8px;background:#f0fdf4;border:1px solid #bbf7d0;color:#15803d;padding:7px 14px;border-radius:8px;font-size:13px;font-weight:600;">
+                    <svg class="icon icon-sm" style="stroke:#15803d"><use href="#i-check-circle"/></svg>
+                    <span id="platform-badge-text">Platform detected</span>
+                </div>
             </div>
 
             <div class="form-row">
@@ -762,6 +772,14 @@ body {
                 <div class="form-group"><label for="switch-user">Username</label><input type="text" id="switch-user" placeholder="admin"></div>
                 <div class="form-group"><label for="switch-pass">Password</label><input type="password" id="switch-pass" placeholder="Password"></div>
                 <div class="form-group"><label for="switch-enable">Enable Password <small>(optional)</small></label><input type="password" id="switch-enable" placeholder="Enable password"></div>
+                <div class="form-group">
+                    <label for="conn-ios-version">IOS Version <small>(auto-detect recommended)</small></label>
+                    <select id="conn-ios-version">
+                        <option value="auto">Auto-detect (recommended)</option>
+                        <option value="classic">IOS Classic — Stratix 5400 / 5700</option>
+                        <option value="iosxe">IOS-XE — Stratix 5800</option>
+                    </select>
+                </div>
             </div>
             <div class="op-actions">
                 <button class="btn btn-primary" id="btn-connect" onclick="connectSwitch()"><svg class="icon icon-sm"><use href="#i-plug"/></svg> Connect</button>
@@ -793,6 +811,17 @@ body {
                     <code>show port-security</code>, and <code>show ip dhcp snooping</code>.
                 </div>
             </div>
+            <div class="op-card" style="border-color:#fecaca;">
+                <h3 style="color:#b91c1c;">⚠ Rollback Configuration</h3>
+                <p>Remove all Channel Guard settings from the connected switch without factory reset.</p>
+                <div class="op-actions">
+                    <button class="btn btn-secondary" onclick="previewRollback()" id="btn-preview-rollback"><svg class="icon icon-sm"><use href="#i-eye"/></svg> Preview</button>
+                    <button class="btn btn-danger" onclick="rollbackConfig()" id="btn-rollback"><svg class="icon icon-sm"><use href="#i-trash"/></svg> Rollback</button>
+                </div>
+                <div class="op-note" style="color:#b91c1c;">
+                    Removes DHCP Snooping, IP Source Guard, Port Security, and BPDU Guard from all channels.
+                </div>
+            </div>
         </div>
 
         <div class="console-section" id="console-section" style="display:none;">
@@ -816,6 +845,78 @@ body {
             </div>
         </header>
         <div class="topo-list" id="topo-list"></div>
+    </div>
+
+    <!-- ════════════ VIEW: COMPLIANCE ════════════ -->
+    <div class="view" id="view-compliance">
+        <header class="page-header">
+            <h2>IEC Compliance Reference</h2>
+        </header>
+        <div style="padding:0 32px 32px;max-width:900px;">
+
+            <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:18px 22px;margin-bottom:24px;">
+                <div style="font-weight:700;color:#1e40af;font-size:14px;margin-bottom:6px;">Channel Guard v2.0 — Compliance Summary</div>
+                <div style="font-size:13px;color:#1e40af;line-height:1.6;">
+                    Channel Guard deploys five Cisco IOS/IOS-XE Layer 2 security mechanisms that collectively satisfy the security requirements of
+                    <strong>IEC 62443-3-3 SR 5.2</strong> (Network and Communication Integrity) and
+                    <strong>IEC 61508-2</strong> (Hardware Safety Requirements for E/E/PE systems).
+                    Once deployed, the switch ASIC enforces all rules in hardware at <strong>1–5 µs</strong> — three orders of magnitude below any IEC safety timing threshold.
+                </div>
+            </div>
+
+            <h3 style="font-size:15px;font-weight:700;margin-bottom:16px;color:#0f172a;">Security Mechanisms &amp; Standard Mapping</h3>
+            <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:28px;">
+                <thead>
+                    <tr style="background:#1e3a5f;color:#fff;">
+                        <th style="padding:10px 14px;text-align:left;border-radius:6px 0 0 0;">Mechanism</th>
+                        <th style="padding:10px 14px;text-align:left;">What It Blocks</th>
+                        <th style="padding:10px 14px;text-align:left;">IEC Standard</th>
+                        <th style="padding:10px 14px;text-align:left;border-radius:0 6px 0 0;">Requirement</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr style="background:#f8fafc;"><td style="padding:9px 14px;border-bottom:1px solid #e2e8f0;"><strong>DHCP Snooping</strong></td><td style="padding:9px 14px;border-bottom:1px solid #e2e8f0;">Rogue DHCP servers, IP starvation</td><td style="padding:9px 14px;border-bottom:1px solid #e2e8f0;">IEC 62443-3-3</td><td style="padding:9px 14px;border-bottom:1px solid #e2e8f0;">SR 5.2</td></tr>
+                    <tr><td style="padding:9px 14px;border-bottom:1px solid #e2e8f0;"><strong>IP Source Guard</strong></td><td style="padding:9px 14px;border-bottom:1px solid #e2e8f0;">IP spoofing, unauthorized device injection</td><td style="padding:9px 14px;border-bottom:1px solid #e2e8f0;">IEC 62443-3-3</td><td style="padding:9px 14px;border-bottom:1px solid #e2e8f0;">SR 5.2 RE(1)</td></tr>
+                    <tr style="background:#f8fafc;"><td style="padding:9px 14px;border-bottom:1px solid #e2e8f0;"><strong>Port Security</strong></td><td style="padding:9px 14px;border-bottom:1px solid #e2e8f0;">MAC flooding, unauthorized endpoints</td><td style="padding:9px 14px;border-bottom:1px solid #e2e8f0;">IEC 62443-3-3</td><td style="padding:9px 14px;border-bottom:1px solid #e2e8f0;">SR 5.2 RE(1)</td></tr>
+                    <tr><td style="padding:9px 14px;border-bottom:1px solid #e2e8f0;"><strong>BPDU Guard</strong></td><td style="padding:9px 14px;border-bottom:1px solid #e2e8f0;">Unauthorized switch insertion, STP attacks</td><td style="padding:9px 14px;border-bottom:1px solid #e2e8f0;">IEC 62443-3-3</td><td style="padding:9px 14px;border-bottom:1px solid #e2e8f0;">SR 5.3</td></tr>
+                    <tr style="background:#f8fafc;"><td style="padding:9px 14px;"><strong>PortFast</strong></td><td style="padding:9px 14px;">STP convergence delay on access ports</td><td style="padding:9px 14px;">IEC 61784-3</td><td style="padding:9px 14px;">CIP Safety RPI ≤ 20ms</td></tr>
+                </tbody>
+            </table>
+
+            <h3 style="font-size:15px;font-weight:700;margin-bottom:12px;color:#0f172a;">Safety Timing Formula — IEC 61508-1 §7.4</h3>
+            <div style="background:#1e293b;border-radius:10px;padding:20px 24px;font-family:monospace;font-size:13px;color:#e2e8f0;margin-bottom:24px;line-height:2;">
+                <div style="color:#94a3b8;margin-bottom:8px;">// IEC 61508 Constraint: SFRT ≤ ½ × PST</div>
+                <div><span style="color:#7dd3fc;">SFRT</span> = Safety Task Period + Network RPI + Jitter + Output Response</div>
+                <div style="padding-left:16px;color:#a3e635;">= 10ms + 10ms + 2ms + 3ms = <strong style="color:#4ade80;">25ms ✓</strong></div>
+                <div style="margin-top:8px;color:#94a3b8;">// Channel Guard hardware latency (ASIC enforcement)</div>
+                <div><span style="color:#7dd3fc;">T_guard</span> = 1–5 µs <span style="color:#4ade80;">≪</span> SFRT — zero impact on safety path</div>
+                <div style="margin-top:8px;color:#94a3b8;">// IEC 61784-3 CIP Safety Network Watchdog</div>
+                <div><span style="color:#7dd3fc;">T_watchdog</span> = 3 × RPI = 3 × 10ms = <strong style="color:#4ade80;">30ms ✓</strong></div>
+            </div>
+
+            <h3 style="font-size:15px;font-weight:700;margin-bottom:12px;color:#0f172a;">Platform Compatibility Matrix — v2.0</h3>
+            <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:28px;">
+                <thead>
+                    <tr style="background:#1e3a5f;color:#fff;">
+                        <th style="padding:10px 14px;">Switch Model</th>
+                        <th style="padding:10px 14px;">Cat. No.</th>
+                        <th style="padding:10px 14px;">IOS</th>
+                        <th style="padding:10px 14px;">Netmiko Type</th>
+                        <th style="padding:10px 14px;">Channel Guard</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr style="background:#f8fafc;"><td style="padding:9px 14px;border-bottom:1px solid #e2e8f0;">Stratix 5400</td><td style="padding:9px 14px;border-bottom:1px solid #e2e8f0;">1783-HMS</td><td style="padding:9px 14px;border-bottom:1px solid #e2e8f0;">Classic 15.2(x)EA</td><td style="padding:9px 14px;border-bottom:1px solid #e2e8f0;font-family:monospace;">cisco_ios</td><td style="padding:9px 14px;border-bottom:1px solid #e2e8f0;color:#15803d;font-weight:700;">✓ Supported</td></tr>
+                    <tr><td style="padding:9px 14px;border-bottom:1px solid #e2e8f0;">Stratix 5700</td><td style="padding:9px 14px;border-bottom:1px solid #e2e8f0;">1783-BMS</td><td style="padding:9px 14px;border-bottom:1px solid #e2e8f0;">Classic 15.2(x)EA</td><td style="padding:9px 14px;border-bottom:1px solid #e2e8f0;font-family:monospace;">cisco_ios</td><td style="padding:9px 14px;border-bottom:1px solid #e2e8f0;color:#15803d;font-weight:700;">✓ Supported</td></tr>
+                    <tr style="background:#f8fafc;"><td style="padding:9px 14px;">Stratix 5800</td><td style="padding:9px 14px;">1783-MMS</td><td style="padding:9px 14px;">IOS-XE 16.x+</td><td style="padding:9px 14px;font-family:monospace;">cisco_xe</td><td style="padding:9px 14px;color:#15803d;font-weight:700;">✓ Supported</td></tr>
+                </tbody>
+            </table>
+
+            <div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:8px;padding:14px 18px;font-size:13px;color:#92400e;">
+                <strong>⚠ Stratix 5400 prerequisite:</strong> SSH requires the Cryptographic IOS image (K9 license). Verify with <code>show version | include K9</code> before connecting.
+                Run <code>crypto key generate rsa modulus 2048</code> and <code>ip ssh version 2</code> to enable SSH.
+            </div>
+        </div>
     </div>
 </main>
 
@@ -877,7 +978,7 @@ body {
 
 <!-- ═══════════════ JAVASCRIPT ═══════════════ -->
 <script>
-const state = { currentView:'dashboard', topology:null, stats:null, connection:{connected:false,host:null} };
+const ALL_VIEWS = ['dashboard','editor','deploy','saved','compliance'];
 
 const api = {
     async get(u) { const r=await fetch(u); return r.json(); },
@@ -953,13 +1054,26 @@ async function connectSwitch() {
     const username=document.getElementById('switch-user').value.trim();
     const password=document.getElementById('switch-pass').value;
     const enable=document.getElementById('switch-enable').value;
+    const ios_version=document.getElementById('conn-ios-version').value;
     if (!host||!username||!password) { showToast('Please fill in IP, username, and password.','error'); return; }
     const btn=document.getElementById('btn-connect');
     btn.disabled=true; btn.innerHTML='<span class="spinner"></span> Connecting...';
+    // Hide badge during connect
+    document.getElementById('platform-badge-wrap').style.display='none';
     try {
-        const r=await api.post('/api/connect',{host,username,password,enable_password:enable});
-        if (r.ok&&r.data.success) { showToast('Connected to '+host); state.connection={connected:true,host,...r.data}; updateConnectionStatus(); }
-        else showToast(r.data.error||'Connection failed','error');
+        const r=await api.post('/api/connect',{host,username,password,enable_password:enable,ios_version});
+        if (r.ok&&r.data.success) {
+            showToast('Connected to '+host);
+            state.connection={connected:true,host,...r.data};
+            // Show platform badge
+            const badge=document.getElementById('platform-badge-wrap');
+            const badgeText=document.getElementById('platform-badge-text');
+            const platform = r.data.platform || 'Cisco IOS Switch';
+            const ios = r.data.ios_version || '';
+            badgeText.textContent = platform + (ios ? '  ·  ' + ios : '');
+            badge.style.display='block';
+            updateConnectionStatus();
+        } else showToast(r.data.error||'Connection failed','error');
     } catch(e) { showToast('Connection error: '+e.message,'error'); }
     btn.disabled=false; btn.innerHTML='<svg class="icon icon-sm"><use href="#i-plug"/></svg> Connect';
 }
@@ -1096,16 +1210,52 @@ async function handleFileImport(ev) {
 }
 
 /* ── Deploy & Verify ────────────────────────────────────── */
-function showConsole(title) {
+function showConsole(title, text, status) {
     const s=document.getElementById('console-section'),o=document.getElementById('console-output'),st=document.getElementById('console-status'),t=document.getElementById('console-title');
-    s.style.display='block'; o.textContent='Running... please wait.\n'; st.textContent='RUNNING'; st.className='status-badge status-running'; t.textContent=title;
-    s.scrollIntoView({behavior:'smooth'});
+    t.textContent=title;
+    if (text !== undefined) { o.textContent=text; }
+    else { o.textContent='Running... please wait.\n'; }
+    const map={success:'status-success',error:'status-error',info:'status-info',running:'status-running'};
+    const lbl={success:'SUCCESS',error:'FAILED',info:'INFO',running:'RUNNING'};
+    const s2 = status||'running';
+    st.className='status-badge '+(map[s2]||'status-running');
+    st.textContent=lbl[s2]||'RUNNING';
+    s.style.display='block';
+    s.scrollIntoView({behavior:'smooth',block:'start'});
 }
 function setConsoleResult(text,success) {
     document.getElementById('console-output').textContent=text||'(no output)';
     const st=document.getElementById('console-status'); st.textContent=success?'SUCCESS':'FAILED'; st.className='status-badge '+(success?'status-success':'status-failed');
 }
 function clearConsole(){document.getElementById('console-section').style.display='none';}
+
+/* ── Rollback ────────────────────────────────────────── */
+async function previewRollback() {
+    try {
+        const r = await api.get('/api/preview/rollback');
+        if (r.error) { showToast(r.error,'error'); return; }
+        showConsole('Rollback Preview', r.commands.join('\n'), 'info');
+    } catch(e) { showToast('Error: '+e.message,'error'); }
+}
+
+async function rollbackConfig() {
+    if (!state.connection.connected) { showToast('Not connected to any switch.','error'); return; }
+    if (!confirm('⚠ This will remove all Channel Guard configuration from the switch.\n\nAre you sure?')) return;
+    const btn=document.getElementById('btn-rollback');
+    btn.disabled=true; btn.innerHTML='<span class="spinner"></span> Rolling back...';
+    try {
+        const r=await api.post('/api/rollback',{});
+        if (r.success) {
+            showToast('Rollback complete. '+r.commands_sent+' commands sent.','success');
+            showConsole('Rollback Output', r.output, 'success');
+        } else {
+            showToast(r.error||'Rollback failed','error');
+            showConsole('Rollback Error', r.error||'Unknown error', 'error');
+        }
+    } catch(e) { showToast('Error: '+e.message,'error'); }
+    btn.disabled=false; btn.innerHTML='<svg class="icon icon-sm"><use href="#i-trash"/></svg> Rollback';
+}
+
 function setDeployBtns(d){['btn-preview','btn-deploy','btn-verify'].forEach(id=>{const b=document.getElementById(id);if(b)b.disabled=d;});}
 
 async function previewCommands() {

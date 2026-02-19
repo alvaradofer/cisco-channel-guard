@@ -1,46 +1,56 @@
 ---
 # ╔══════════════════════════════════════════════════════════════════╗
-# ║            NETWORK TOPOLOGY - DEFINITION FILE                   ║
+# ║          CHANNEL GUARD v2.0 — NETWORK TOPOLOGY FILE            ║
 # ╠══════════════════════════════════════════════════════════════════╣
-# ║  Copy this file as 'network.yml' and edit with your data:      ║
-# ║    cp network.example.yml network.yml                           ║
+# ║  Supported platforms:                                           ║
+# ║    classic → Stratix 5400 (1783-HMS) / Stratix 5700 (1783-BMS) ║
+# ║    iosxe   → Stratix 5800 (1783-MMS)                           ║
 # ║                                                                 ║
-# ║  3-Level Topology:                                              ║
-# ║    Level 1: Switch Port                                         ║
-# ║      └── Level 2: I/O Block                                    ║
-# ║            └── Level 3: Devices (printers, readers, etc.)       ║
+# ║  Copy and edit as your active topology:                         ║
+# ║    cp network.example.yml topologies/network.yml                ║
 # ╚══════════════════════════════════════════════════════════════════╝
 
-# --- Switch settings ---
-# "classic" for IOS 12.x/15.x  |  "xe" for IOS-XE 16.x+
+# ── Platform ─────────────────────────────────────────────────────
+# "classic"  →  IOS 15.2(x)EA  —  Stratix 5400 / 5700
+#   Commands: ip device tracking, cisco_ios Netmiko type
+# "iosxe"    →  IOS-XE 16.x+   —  Stratix 5800
+#   Commands: device-tracking tracking, cisco_xe Netmiko type
 ios_version: "classic"
 
-# Uplink ports (connection to router or core switch).
-# These are marked as "trusted" for DHCP snooping.
+# ── Uplinks ──────────────────────────────────────────────────────
+# Ports connected to router / core switch / GuardLogix uplink.
+# These are marked as DHCP Snooping TRUSTED — Channel Guard
+# does NOT apply IP Source Guard to uplink ports.
 uplinks:
   - GigabitEthernet1/0/48
 
-# ── Channel definitions ──────────────────────────────────────────
-# Each channel represents a physical switch port with its chain
-# of devices connected through an I/O Block.
+# ── Channels ─────────────────────────────────────────────────────
+# Each channel = one switch access port → one I/O Block → N devices
 #
-#   [Switch Port] ──── [I/O Block] ──┬── [Printer]
-#                                    ├── [Barcode Reader]
-#                                    └── [Other Device]
+#   [Switch Port Gi1/0/1]
+#       └── [I/O Block 192.168.10.1] (Level 2)
+#               ├── [Label Printer  192.168.10.10] (Level 3)
+#               └── [Barcode Reader 192.168.10.11] (Level 3)
+#
+# Security applied per port:
+#   ✓ DHCP Snooping (IEC 62443-3-3 SR 5.2)
+#   ✓ IP Source Guard with MAC check (IEC 62443-3-3 SR 5.2 RE1)
+#   ✓ Port Security max MACs (IEC 62443-3-3 SR 5.2 RE1)
+#   ✓ BPDU Guard (IEC 62443-3-3 SR 5.3)
+#   ✓ PortFast (IEC 61784-3 CIP Safety RPI compliance)
 
 channels:
-  # ── Channel 1: Robot Cell A ────────────────────────────────
+
+  # ── Channel 1: Robot Cell A ──────────────────────────────────
   - port: GigabitEthernet1/0/1
     vlan: 10
     description: "Robot Cell A"
 
-    # Level 2: I/O Block connected directly to the switch
     io_block:
       name: "IO_Block_CellA"
       ip: "192.168.10.1"
       mac: "0011.2233.4455"
 
-    # Level 3: Devices connected to the I/O Block
     devices:
       - name: "Label_Printer"
         type: "printer"
@@ -52,7 +62,7 @@ channels:
         ip: "192.168.10.11"
         mac: "dd44.ee55.ff66"
 
-  # ── Channel 2: Packing Station ────────────────────────────
+  # ── Channel 2: Packing Station ───────────────────────────────
   - port: GigabitEthernet1/0/2
     vlan: 20
     description: "Packing Station"
@@ -68,7 +78,7 @@ channels:
         ip: "192.168.20.10"
         mac: "7788.99aa.bbcc"
 
-  # ── Channel 3: Inspection Line ─────────────────────────────
+  # ── Channel 3: Inspection Line ───────────────────────────────
   - port: GigabitEthernet1/0/3
     vlan: 30
     description: "Inspection Line"
@@ -95,9 +105,18 @@ channels:
         mac: "7700.8800.9900"
 
 # ── How to find MAC addresses ────────────────────────────────────
-# 1. Device label: check the physical device sticker
-# 2. From the switch: show mac address-table
-# 3. From Windows:    arp -a
-# 4. From Linux:      ip neighbor
-# 5. Cisco format:    xxxx.xxxx.xxxx (no dashes or colons)
-#    Convert: AA:00:BB:11:CC:22 -> aa00.bb11.cc22
+# 1. Physical device label / sticker
+# 2. From the Stratix switch:  show mac address-table
+# 3. From Windows:             arp -a
+# 4. From Linux:               ip neighbor
+# 5. Cisco format: xxxx.xxxx.xxxx — convert AA:00:BB:11:CC:22 → aa00.bb11.cc22
+#
+# ── Stratix 5400 SSH prerequisite ───────────────────────────────
+# Requires Cryptographic IOS (K9 image). Enable SSH:
+#   ip domain-name plant.local
+#   crypto key generate rsa modulus 2048
+#   ip ssh version 2
+#   line vty 0 15
+#    transport input ssh
+#    login local
+#   username admin privilege 15 secret YourPassword

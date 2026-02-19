@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """
-Cisco Channel Guard - Web Interface
+Cisco Channel Guard v2.0 - Web Interface
+
 Self-contained web application for Cisco switch port security management.
+Supports Stratix 5400 / 5700 (IOS Classic) and Stratix 5800 (IOS-XE).
 
 Usage:
     pip install -r requirements.txt
@@ -25,9 +27,14 @@ from flask import (
 import yaml
 
 from switch_manager import SwitchManager
-from ios_commands import generate_commands, generate_verify_commands, generate_summary
+from ios_commands import (
+    generate_commands,
+    generate_verify_commands,
+    generate_rollback_commands,
+    generate_summary,
+)
 
-# ── Configuration ────────────────────────────────────────────
+# ── Configuration ─────────────────────────────────────────────
 
 BASE_DIR = Path(__file__).resolve().parent
 TOPOLOGIES_DIR = BASE_DIR / "topologies"
@@ -39,11 +46,13 @@ TOPOLOGIES_DIR.mkdir(exist_ok=True)
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 1 * 1024 * 1024  # 1 MB upload limit
 
+VERSION = "2.0.0"
+
 # Singleton switch connection
 switch = SwitchManager()
 
 
-# ── Helpers ──────────────────────────────────────────────────
+# ── Helpers ───────────────────────────────────────────────────
 
 def load_topology():
     """Load the active topology from network.yml."""
@@ -127,19 +136,43 @@ def sanitize_filename(name):
     return name
 
 
-# ── Page Route ───────────────────────────────────────────────
+# ── Info Route ────────────────────────────────────────────────
+
+@app.route("/api/version", methods=["GET"])
+def api_version():
+    """Return application version info."""
+    return jsonify({
+        "version": VERSION,
+        "name": "Cisco Channel Guard",
+        "supported_platforms": [
+            {"model": "Stratix 5400 (1783-HMS)", "ios": "IOS Classic", "netmiko": "cisco_ios"},
+            {"model": "Stratix 5700 (1783-BMS)", "ios": "IOS Classic", "netmiko": "cisco_ios"},
+            {"model": "Stratix 5800 (1783-MMS)", "ios": "IOS-XE",     "netmiko": "cisco_xe"},
+        ],
+    })
+
+
+# ── Page Route ────────────────────────────────────────────────
 
 @app.route("/")
 def index():
     """Serve the single-page application."""
-    return render_template("index.html")
+    return render_template("index.html", version=VERSION)
 
 
-# ── Connection API ───────────────────────────────────────────
+# ── Connection API ────────────────────────────────────────────
 
 @app.route("/api/connect", methods=["POST"])
 def api_connect():
-    """Connect to a Cisco switch via SSH."""
+    """Connect to a Cisco switch via SSH.
+
+    Body params:
+        host:            Switch IP address
+        username:        SSH username
+        password:        SSH password
+        enable_password: Enable secret (optional)
+        ios_version:     "auto" | "classic" | "iosxe" (default: "auto")
+    """
     data = request.get_json()
     if not data:
         return jsonify({"success": False, "error": "No data provided"}), 400
@@ -148,6 +181,7 @@ def api_connect():
     username = data.get("username", "").strip()
     password = data.get("password", "")
     enable_password = data.get("enable_password", "")
+    ios_version = data.get("ios_version", "auto").strip()
 
     if not host or not username or not password:
         return jsonify({"success": False, "error": "Host, username, and password are required"}), 400
@@ -155,8 +189,11 @@ def api_connect():
     if not validate_ip(host):
         return jsonify({"success": False, "error": f"Invalid IP address: {host}"}), 400
 
+    if ios_version not in ("auto", "classic", "iosxe"):
+        ios_version = "auto"
+
     try:
-        info = switch.connect(host, username, password, enable_password or None)
+        info = switch.connect(host, username, password, enable_password or None, ios_version)
         return jsonify({"success": True, **info})
     except RuntimeError as e:
         return jsonify({"success": False, "error": str(e)}), 400
@@ -171,11 +208,11 @@ def api_disconnect():
 
 @app.route("/api/status", methods=["GET"])
 def api_status():
-    """Get current connection status."""
+    """Get current connection status including detected platform info."""
     return jsonify(switch.get_status())
 
 
-# ── Topology API ─────────────────────────────────────────────
+# ── Topology API ──────────────────────────────────────────────
 
 @app.route("/api/topology", methods=["GET"])
 def api_get_topology():
@@ -209,7 +246,6 @@ def api_export_topology():
     if topology is None:
         return jsonify({"error": "No topology to export"}), 404
 
-    # Write to a temp file and send
     export_path = TOPOLOGIES_DIR / "_export.yml"
     with open(export_path, "w") as f:
         yaml.dump(topology, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
@@ -261,13 +297,16 @@ def api_list_topologies():
             with open(f) as fh:
                 topo = yaml.safe_load(fh)
             channels = len(topo.get("channels", [])) if topo else 0
+            ios_ver = topo.get("ios_version", "classic") if topo else "classic"
         except Exception:
             channels = 0
+            ios_ver = "classic"
 
         files.append({
             "name": f.stem,
             "filename": f.name,
             "channels": channels,
+            "ios_version": ios_ver,
             "size": f.stat().st_size,
             "modified": f.stat().st_mtime,
         })
@@ -319,7 +358,6 @@ def api_delete_topology():
     if not target.exists():
         return jsonify({"error": f"Topology '{name}' not found"}), 404
 
-    # Don't allow deleting the active topology file
     if target.name == "network.yml":
         return jsonify({"error": "Cannot delete the active topology"}), 400
 
@@ -327,11 +365,11 @@ def api_delete_topology():
     return jsonify({"success": True, "message": f"Topology '{name}' deleted"})
 
 
-# ── Deploy & Verify API ─────────────────────────────────────
+# ── Deploy, Verify & Rollback API ─────────────────────────────
 
 @app.route("/api/preview", methods=["GET"])
 def api_preview():
-    """Preview the IOS commands that will be deployed."""
+    """Preview the IOS/IOS-XE commands that will be deployed."""
     topology = load_topology()
     if topology is None:
         return jsonify({"error": "No topology configured"}), 404
@@ -339,6 +377,17 @@ def api_preview():
     commands = generate_commands(topology)
     summary = generate_summary(topology)
     return jsonify({"commands": commands, "summary": summary})
+
+
+@app.route("/api/preview/rollback", methods=["GET"])
+def api_preview_rollback():
+    """Preview rollback commands (undo all Channel Guard config)."""
+    topology = load_topology()
+    if topology is None:
+        return jsonify({"error": "No topology configured"}), 404
+
+    commands = generate_rollback_commands(topology)
+    return jsonify({"commands": commands})
 
 
 @app.route("/api/deploy", methods=["POST"])
@@ -354,6 +403,11 @@ def api_deploy():
     body = request.get_json() or {}
     save_after = body.get("save_config", True)
 
+    # Auto-sync ios_version from detected switch if "auto" was used
+    detected_ios = switch.get_ios_type()
+    if detected_ios and topology.get("ios_version", "classic") == "classic" and detected_ios == "iosxe":
+        topology["ios_version"] = "iosxe"
+
     commands = generate_commands(topology)
 
     try:
@@ -367,6 +421,7 @@ def api_deploy():
             "output": output,
             "save_output": save_output,
             "commands_sent": len(commands),
+            "ios_version_used": topology.get("ios_version", "classic"),
         })
     except RuntimeError as e:
         return jsonify({"success": False, "error": str(e)}), 500
@@ -395,14 +450,40 @@ def api_verify():
         return jsonify({"success": False, "error": str(e), "results": results}), 500
 
 
-# ── Main ─────────────────────────────────────────────────────
+@app.route("/api/rollback", methods=["POST"])
+def api_rollback():
+    """Remove all Channel Guard configuration from the connected switch."""
+    if not switch.is_connected():
+        return jsonify({"success": False, "error": "Not connected to any switch."}), 400
+
+    topology = load_topology()
+    if topology is None:
+        return jsonify({"success": False, "error": "No topology configured."}), 400
+
+    commands = generate_rollback_commands(topology)
+
+    try:
+        output = switch.send_config(commands)
+        save_output = switch.save_config()
+        return jsonify({
+            "success": True,
+            "output": output,
+            "save_output": save_output,
+            "commands_sent": len(commands),
+        })
+    except RuntimeError as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+# ── Main ──────────────────────────────────────────────────────
 
 if __name__ == "__main__":
     print()
-    print("+" + "=" * 56 + "+")
-    print("|  Cisco Channel Guard - Web Interface                  |")
-    print("|  Open http://localhost:5050 in your browser            |")
-    print("+" + "=" * 56 + "+")
+    print("+" + "=" * 58 + "+")
+    print(f"|  Cisco Channel Guard v{VERSION} - Web Interface              |")
+    print("|  Platforms: Stratix 5400 / 5700 / 5800                  |")
+    print("|  Open http://localhost:5050 in your browser              |")
+    print("+" + "=" * 58 + "+")
     print()
 
     app.run(host="127.0.0.1", port=5050, debug=True)
